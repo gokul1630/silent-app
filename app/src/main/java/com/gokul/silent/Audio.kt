@@ -29,7 +29,7 @@ class Audio {
             val current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
 
 //            3/4 of volume
-            val limit = (max * 0.7).toInt()
+            val limit = (max * 0.5).toInt()
 
             Log.d("silence:", "max $max, current $current")
 
