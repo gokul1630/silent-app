@@ -3,42 +3,45 @@ package com.gokul.silent
 import android.content.Context
 import android.media.AudioManager
 import android.util.Log
+import kotlin.math.roundToInt
 
 class Audio {
     companion object {
+
+        private val streamsToClamp = intArrayOf(
+            AudioManager.STREAM_MUSIC,
+        )
+
         fun silence(context: Context) {
             val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
-//            val focusRequest = AudioFocusRequest.Builder(AudioManager.STREAM_MUSIC)
-//                .setOnAudioFocusChangeListener { focusChange ->
-//                    when(focusChange){
-//                        AudioManager.AUDIOFOCUS_LOSS, AudioManager.AUDIOFOCUS_LOSS_TRANSIENT, AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
-//                            Log.d("silence", "gained focus")
-//                            mute(audioManager)
-//                        }
-//                    }
-//                }
-//                .build()
-//            audioManager.requestAudioFocus(focusRequest)
-
-            mute(audioManager)
+            streamsToClamp.forEach { streamsToClamp ->
+                mute(context, streamsToClamp,audioManager)
+            }
         }
 
-        fun mute(audioManager: AudioManager) {
-            val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-            val current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+        fun mute(context: Context, streamType: Int, audioManager: AudioManager) {
+            val max = audioManager.getStreamMaxVolume(streamType)
+            val current = audioManager.getStreamVolume(streamType)
 
-//            3/4 of volume
-            val limit = (max * 0.5).toInt()
+            val volumeRatio = getVolumeLimitRatio(context)
+//            1/2 of volume
+            val limit = (max * volumeRatio).roundToInt().coerceAtLeast(1)
 
-            Log.d("silence:", "max $max, current $current")
+            Log.d("silence:", "max: $max, current: $current, ratio: $volumeRatio ")
 
-
-            audioManager.setStreamVolume(
-                AudioManager.STREAM_MUSIC,
-                limit,
-                AudioManager.FLAG_REMOVE_SOUND_AND_VIBRATE
-            )
+            if(current > limit) {
+                audioManager.setStreamVolume(
+                    streamType,
+                    limit,
+                    AudioManager.FLAG_REMOVE_SOUND_AND_VIBRATE
+                )
+            }
         }
     }
+}
+
+fun getVolumeLimitRatio(context: Context): Float {
+    val prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+    return prefs.getFloat("volume_limit_ratio", 0.5f)
 }
